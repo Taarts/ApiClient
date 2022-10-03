@@ -1,123 +1,98 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using System.Linq;
 using ConsoleTables;
 
 namespace ApiClient
 {
- class Program    
- {
-     static void DisplayGreeting()
-      {
-        Console.WriteLine();
-        Console.WriteLine("Welcome to Ghibli API interface");
-        Console.WriteLine();
-        }
-        static string PromptForString(string prompt)
+    class Program
+    {
+        class Film
         {
-            Console.Write(prompt);
-            var userInput = Console.ReadLine();
+            [JsonPropertyName("id")]
+            public string id { get; set; }
 
-            return userInput;
+            [JsonPropertyName("title")]
+            public string filmTitle { get; set; }
+
+            [JsonPropertyName("original_title")]
+            public string japaneseKanji { get; set; }
+
+            [JsonPropertyName("original_title_romanised")]
+            public string phoneticTitle { get; set; }
+
+            [JsonPropertyName("description")]
+            public string Description { get; set; }
+
+            [JsonPropertyName("director")]
+            public string director { get; set; }
+
+            [JsonPropertyName("producer")]
+            public string producer { get; set; }
+
+            [JsonPropertyName("release_date")]
+            public string yearReleased { get; set; }
+
+            [JsonPropertyName("running_time")]
+            public string RunningTimeInMinutes { get; set; }
+
+            [JsonPropertyName("rt_score")]
+            public string rottenTomatoScore { get; set; }
         }
-
-        static int PromptForInteger(string prompt)
-        {
-            Console.Write(prompt);
-            int userInput;
-            var isThisGoodInput = Int32.TryParse(Console.ReadLine(), out userInput);
-
-            if (isThisGoodInput)
-            {
-                return userInput;
-            }
-            else
-            {
-                Console.WriteLine("Invalid input,0 your answer shall be.");
-                return 0;
-            }
-        }
-        
         static async Task Main(string[] args)
         {
-        var keepGoing  = true;
-            DisplayGreeting();
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            var client = new HttpClient();
+
+            var responseAsStream = await client.GetStreamAsync("https://ghibliapi.herokuapp.com/films");
+
+            var films = await JsonSerializer.DeserializeAsync<List<Film>>(responseAsStream);
+            var table = new ConsoleTable("Title", "Kanji");
+
+            foreach (var film in films)
+            {
+                table.AddRow(film.filmTitle, film.japaneseKanji);
+            }
+
+            table.Write();
+            var keepGoing = true;
             while (keepGoing)
             {
                 Console.WriteLine();
-                Console.WriteLine("Choose from the menu");
-                Console.WriteLine("Show (A)ll movies");
-                Console.WriteLine("Show Movie & (Y)ear");
-                Console.WriteLine("Show the Movie & it's (R)otten Tomatoes Score");
-                Console.WriteLine("(Q)uit to exit");
+                Console.WriteLine($"Would you like to find out more about your favorite Studio Ghibli film? (y/n)");
+
+                Console.WriteLine();
                 var choice = Console.ReadLine().ToUpper();
 
-            var url = $"https://ghibliapi.herokuapp.com/films";
-
-            switch (choice)
-            {
-            case "A":
-                await AllMovies();
-                break;
-            case "Y":
-                await MovieReleaseDate();
-                break;
-            case "R":
-                await RottenTomatoes();
-                break;
-            case "Q":
-                Console.WriteLine($"Goodbye");
-                keepGoing = false;
-                break;
-            default:
-                Console.WriteLine($"Invalid selection, Try again.");
-                break;
+                switch (choice)
+                {
+                    case "Y":
+                        NewMethod(films);
+                        break;
+                    case "N":
+                        Console.WriteLine("Thanks! Goodbye!");
+                        keepGoing = false;
+                        break;
+                    default:
+                        Console.WriteLine("Invalid choice");
+                        break;
+                }
             }
         }
-        static async Task MovieReleaseDate(string url)
+
+        private static void NewMethod(List<Film> films)
         {
-            var client = new  HttpClient();
-            var responseAsStream = await client.GetStreamAsync(url);
-            var movies = await JsonSerializer.DeserializeAsync<List<movies>>(responseAsStream);
-            var years = movies.Where(movie => movies.ReleaseDate);
-
-            var table = new ConsoleTable("Title", "ReleaseDate");
-            foreach (var movie in years)
-            {
-                table.AddRow(movie.Title, movie.ReleaseDate);
-            }
-            table.Write();
-            
-        }
-        static async Task AllMovies()
-        {
-            var client = new HttpClient();
-
-            var responseAsStream = await client.GetStreamAsync("https://ghibliapi.herokuapp.com/films/");
-            var movies = await JsonSerializer.DeserializeAsync<List<movies>>(responseAsStream);
-
-            // Console.WriteLine(responseAsString);
-            
-            var table = new ConsoleTable("Title", "Director", "release date", "Rotten Tomato Score" );
-
-            foreach (var movie in movies)
-            {
-                // Console.WriteLine($"The movie {item.Title} was directed by {item.Director} and released in {item.ReleaseDate}.");
-                
-                table.AddRow(
-                    movie.Title, 
-                    movie.Director, 
-                    movie.ReleaseDate, 
-                    movie.RottenTomatoScore 
-                );
-                table.Write();
-               
-            }
+            Console.WriteLine($"Pick a number between 1 - {films.Count} to find out more about your favorite Studio Ghibli film.");
+            var filmIndex = Int32.Parse(Console.ReadLine()) - 1;
+            var selectedFilm = films[filmIndex];
+            Console.WriteLine($"The film {selectedFilm.filmTitle}, {selectedFilm.japaneseKanji}, pronounced {selectedFilm.phoneticTitle} was released in {selectedFilm.yearReleased}. ");
+            Console.WriteLine($"{selectedFilm.filmTitle} is about {selectedFilm.Description}.");
+            Console.WriteLine();
+            Console.WriteLine($"Directed by {selectedFilm.director} and produce by {selectedFilm.producer}");
         }
     }
 }
-
